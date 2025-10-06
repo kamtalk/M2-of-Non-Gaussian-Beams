@@ -1,90 +1,110 @@
-M² and Modal Analysis of Non--Gaussian Beams
+# M² and Modal Analysis of Non-Gaussian Beams
+
 This repository contains the Python source code for the paper titled:
-"M² and Modal Analysis of Non-Gaussian Beams: A Noise-Resilient Single-Plane Framework"
+
+**"M² and Modal Analysis of Non-Gaussian Beams: A Noise-Resilient Single-Plane Framework"**  
 by Kenneth A. Menard
-The framework presented in the paper provides a versatile and noise-tolerant tool for the complete physical characterization of a wide range of laser beam types, using only single-plane complex field measurements. This code allows for the full reproduction of all simulation results presented in the revised manuscript submitted to the Journal of Optics.
-🔧 Installation
-This code requires Python 3. Using a dedicated virtual environment is strongly recommended.
-1. Clone the repository
-code
-Bash
+
+The framework presented in the paper provides a versatile and noise-tolerant tool for the complete physical characterization of a wide range of laser beam types, using only single-plane complex field measurements. This code allows for full reproduction of all simulation results presented in the manuscript.
+
+---
+
+## 🔧 Installation
+
+This code requires Python 3. It is strongly recommended to use a dedicated virtual environment.
+
+### 1. Clone the repository
+
+```bash
 git clone https://github.com/kamtalk/M2-of-Non-Gaussian-Beams.git
 cd M2-of-Non-Gaussian-Beams
-2. Create and activate a virtual environment
-code
-Bash
-# For macOS/Linux
+```
+
+### 2. Create and activate a virtual environment
+
+```bash
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # On Windows, use: venv\Scripts\activate
+```
 
-# For Windows
-py -m venv venv
-venv\Scripts\activate
-3. Install required dependencies
-code
-Bash
+### 3. Install required dependencies
+
+```bash
 pip install -r requirements.txt
-🚀 Usage
-The code is organized into modular scripts that can be run independently to reproduce the main results from the paper.
-📊 Reproducing Table 1
-Run the following script to simulate and print all beam characterization data shown in Table 1 to the console:
-code
-Bash
-python generate_table_1.py```
+```
 
-### 📈 Generating the Figures
+---
 
-Run the following scripts to generate the figures from the revised manuscript. The output images will be saved in the project's root directory.
+## 🚀 Usage
 
-*   **Figure 2:** Analysis of a strongly aberrated beam with a mismatched HG basis.
-    ```bash
-    python generate_figure_2.py
-    ```
+The code is organized into modular scripts to reproduce the main results from the paper.
 
-*   **Figure 3 (New):** The framework's diagnostic capabilities, comparing a failed perturbation fit with a successful `AddModes` fit.
-    ```bash
-    python generate_figure_mismatch_diagnostic.py
-    ```
+### 📊 Reproducing Table 1: Beam Characterization Results
 
-*   **Figure 4 (Revised):** The noise robustness plot with statistically significant error bars from a Monte Carlo analysis.
-    ```bash
-    python Frameworks_noise_robustness.py
-    ```
+Run the following script to simulate and print all beam characterization data shown in Table 1:
 
-*   **Figure 5 (New):** A visual demonstration of the framework's noise-filtering capabilities.
-    ```bash
-    python generate_figure_noise_filtering.py
-    ```
+```bash
+python generate_table_1.py
+```
+
+This script analyzes each beam type and prints the M² and modal decomposition results to the console.
+
+### 📈 Generating Figure 2: Aberrated Beam Analysis
+
+To generate the multi-panel figure analyzing a strongly aberrated TEM₀₀ beam:
+
+```bash
+python generate_figure_2.py
+```
+
+The image file will be generated and saved in the current directory.
+
+### 📉 Generating Figure 3: Noise Robustness Comparison
+
+To generate the figure comparing the M² estimation methods under increasing noise:
+
+```bash
+python Frameworks_noise_robustness.py
+```
+
+This will create and save the noise robustness plot in the current directory.
 
 ---
 
 ## 🧱 Code Structure
 
-The repository is organized into executable scripts and supporting library modules.
+The repository is organized into executable scripts and supporting modules.
 
-### Main Scripts (Executable)
+### Main Scripts
 
--   **`generate_table_1.py`**: Generates the data for Table 1.
--   **`generate_figure_2.py`**: Generates Figure 2.
--   **`generate_figure_mismatch_diagnostic.py`**: Generates the new diagnostic figure (Figure 3).
--   **`Frameworks_noise_robustness.py`**: Generates the revised noise plot (Figure 4).
--   **`generate_figure_noise_filtering.py`**: Generates the new noise-filtering figure (Figure 5).
+- **`generate_table_1.py`**  
+  Simulates and summarizes M² and modal content for all beam types used in Table 1.
 
-### Supporting Modules (Libraries)
+- **`generate_figure_2.py`**  
+  Generates the multi-panel visualization for the strongly aberrated beam case (Figure 2).
 
--   **`analysis_models.py`**: Contains the core implementations of the `Perturbation` and `Additive Modal Decomposition` models.
--   **`beam_definitions.py`**: Provides functions to generate all ideal, structured, and aberrated beams used in the analysis.
--   **`m2_utils.py`**: Contains utility functions for grid setup, M² calculations (both Spatial/FFT and coefficient-based), and beam profile plotting.
+- **`Frameworks_noise_robustness.py`**  
+  Produces the plot comparing noise robustness of different M² methods (Figure 3).
+
+### Supporting Modules
+
+- **`analysis_models.py`**  
+  Contains the implementation of the Perturbation and Additive Modal Decomposition frameworks.
+
+- **`beam_definitions.py`**  
+  Provides functions to generate all structured, non-Gaussian, and aberrated beams used in the analysis.
+
+- **`m2_utils.py`**  
+  Utility functions for calculating M² using both the spatial/FFT-based method and the coefficient-based method.
 
 ---
 
 ## 📚 Citation
 
-If you use this code or the methods described in our paper for your research, please cite the original publication.
+If you use this code or the methods described in our paper for your research, please cite the original publication:
 
-> K. A. Menard, *"M² and Modal Analysis of Non-Gaussian Beams: A Noise-Resilient Single-Plane Framework,"* Journal of Optics, [Volume, Page Numbers, Year].
->
-> *(Please update with the final publication details.)*
+> K. A. Menard, *"M² and Modal Analysis of Non-Gaussian Beams: A Noise-Resilient Single-Plane Framework,"* Journal of Optics, [Volume, Page Numbers, Year].  
+> *(Please update the citation once the paper is published.)*
 
 ---
 
