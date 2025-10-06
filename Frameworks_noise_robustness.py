@@ -1,6 +1,6 @@
-# @title m2_vs_noise_sweep_direct_plot.py
-# The definitive version with a direct plot connecting the calculated points with straight lines.
-# This removes all complex spline fitting for a clean, honest representation of the data.
+# @title Frameworks_noise_robustness.py
+# Revised version to include Monte Carlo analysis for statistical robustness,
+# addressing Reviewer 2, Comment 3.
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,12 +23,15 @@ w0_gaussian = 2.0
 lg_basis_order = 10 
 rcond_solver = 1e-8 
 
+# --- NEW: Monte Carlo simulation parameter ---
+N_runs = 50  # Number of runs for each noise level to get statistics
+
 log_noise_levels = np.logspace(-3, -1, 20) 
 linear_noise_levels = np.linspace(2e-4, 8e-4, 4)
 noise_levels_to_test = np.unique(np.concatenate(([0.0], linear_noise_levels, log_noise_levels)))
 
 # ==============================================================
-# SECTION 2: ESSENTIAL FUNCTIONS
+# SECTION 2: ESSENTIAL FUNCTIONS (Unchanged)
 # ==============================================================
 
 def setup_grid(grid_size, xy_max):
@@ -101,7 +104,7 @@ def calculate_m2_from_coeffs_lg(coeffs_complex, mode_keys):
     return m2_val
 
 # ==============================================================
-# SECTION 3: MAIN EXPERIMENT LOOP
+# SECTION 3: REVISED MAIN EXPERIMENT LOOP WITH MONTE CARLO
 # ==============================================================
 
 logger.info("Setting up grid and pre-calculating basis set...")
@@ -113,57 +116,94 @@ mode_keys = list(basis_modes.keys())
 psi_modes_flat = [basis_modes[k].flatten() for k in mode_keys]
 Psi_matrix = np.stack(psi_modes_flat, axis=1)
 
-m2_traditional_results = []
-m2_framework_results = []
+# Lists to store the final statistical results (mean and std dev)
+mean_traditional = []
+std_traditional = []
+mean_framework = []
+std_framework = []
 
-logger.info(f"Starting M² vs. Noise sweep for {len(noise_levels_to_test)} levels (including zero)...")
+logger.info(f"Starting M² vs. Noise sweep for {len(noise_levels_to_test)} levels, with {N_runs} runs per level...")
 for i, noise_std in enumerate(noise_levels_to_test):
+    # Temporary lists to store results for the current noise level
+    per_level_trad_m2s = []
+    per_level_framework_m2s = []
+
     if noise_std == 0.0:
-        psi_noisy = psi_ideal_gaussian
+        # For zero noise, there's no randomness, so only run once
+        psi_current = psi_ideal_gaussian
+        Mx2_trad, My2_trad = calculate_m2_spatial_fft(psi_current, x_coords, y_coords)
+        y_vector = psi_current.flatten()
+        coeffs, _, _, _ = np.linalg.lstsq(Psi_matrix, y_vector, rcond=rcond_solver)
+        m2_coeff = calculate_m2_from_coeffs_lg(coeffs, mode_keys)
+        
+        # Append the single deterministic result
+        per_level_trad_m2s.append(Mx2_trad)
+        per_level_framework_m2s.append(m2_coeff)
+        
     else:
-        noise_real = np.random.normal(loc=0.0, scale=noise_std, size=psi_ideal_gaussian.shape)
-        noise_imag = np.random.normal(loc=0.0, scale=noise_std, size=psi_ideal_gaussian.shape)
-        psi_noisy = psi_ideal_gaussian + (noise_real + 1j * noise_imag)
+        # For non-zero noise, run the Monte Carlo simulation
+        for run_num in range(N_runs):
+            noise_real = np.random.normal(loc=0.0, scale=noise_std, size=psi_ideal_gaussian.shape)
+            noise_imag = np.random.normal(loc=0.0, scale=noise_std, size=psi_ideal_gaussian.shape)
+            psi_noisy = psi_ideal_gaussian + (noise_real + 1j * noise_imag)
 
-    Mx2_trad, My2_trad = calculate_m2_spatial_fft(psi_noisy, x_coords, y_coords)
-    m2_traditional_results.append(Mx2_trad) 
+            Mx2_trad, My2_trad = calculate_m2_spatial_fft(psi_noisy, x_coords, y_coords)
+            per_level_trad_m2s.append(Mx2_trad) 
 
-    y_vector = psi_noisy.flatten()
-    coeffs, _, _, _ = np.linalg.lstsq(Psi_matrix, y_vector, rcond=rcond_solver)
-    
-    m2_coeff = calculate_m2_from_coeffs_lg(coeffs, mode_keys)
-    m2_framework_results.append(m2_coeff)
+            y_vector = psi_noisy.flatten()
+            coeffs, _, _, _ = np.linalg.lstsq(Psi_matrix, y_vector, rcond=rcond_solver)
+            m2_coeff = calculate_m2_from_coeffs_lg(coeffs, mode_keys)
+            per_level_framework_m2s.append(m2_coeff)
+
+    # Calculate statistics for the current noise level
+    mean_trad = np.nanmean(per_level_trad_m2s)
+    std_trad = np.nanstd(per_level_trad_m2s)
+    mean_fw = np.nanmean(per_level_framework_m2s)
+    std_fw = np.nanstd(per_level_framework_m2s)
+
+    # Append stats to the main results lists
+    mean_traditional.append(mean_trad)
+    std_traditional.append(std_trad)
+    mean_framework.append(mean_fw)
+    std_framework.append(std_fw)
 
     logger.info(f"Level {i+1}/{len(noise_levels_to_test)} (Noise Std={noise_std:.4f}): "
-                f"M²_trad={Mx2_trad:.4f}, M²_framework={m2_coeff:.4f}")
+                f"Trad: {mean_trad:.2f} ± {std_trad:.2f}, "
+                f"Framework: {mean_fw:.4f} ± {std_fw:.4f}")
 
 # ==============================================================
-# SECTION 4: PLOTTING THE RESULTS
+# SECTION 4: REVISED PLOTTING WITH ERROR BARS
 # ==============================================================
 
-logger.info("Plotting results...")
+logger.info("Plotting results with error bars...")
 plt.style.use('seaborn-v0_8-whitegrid')
 fig, ax = plt.subplots(figsize=(10, 6))
 
-# --- PLOT THE DATA POINTS CONNECTED BY STRAIGHT LINES ---
-# The 'o-' and 's-' format strings plot both markers and connecting lines.
-ax.plot(noise_levels_to_test, m2_traditional_results, 'o-', color='crimson', label='Traditional Method (Spatial/FFT)')
-ax.plot(noise_levels_to_test, m2_framework_results, 's-', color='royalblue', label=f'Framework (AddModes LG, M={lg_basis_order})')
+# --- PLOT THE DATA USING ERRORBAR ---
+# This plots the mean value as a marker and the standard deviation as an error bar.
+ax.errorbar(noise_levels_to_test, mean_traditional, yerr=std_traditional, 
+            fmt='o', markersize=5, color='crimson', capsize=4, elinewidth=1.5,
+            label='Traditional Method (Spatial/FFT)')
+            
+ax.errorbar(noise_levels_to_test, mean_framework, yerr=std_framework,
+            fmt='s', markersize=5, color='royalblue', capsize=4, elinewidth=1.5,
+            label=f'Framework (AddModes LG, M={lg_basis_order})')
 
 # --- AXIS FORMATTING ---
 ax.set_yscale('log')
 ax.set_xscale('symlog', linthresh=1e-3) 
-ax.set_xlim(left=-0.0001) # Use a tiny negative limit to ensure x=0 tick is clean
+ax.set_xlim(left=-0.0001)
 
 ax.set_xlabel('Noise Level (Standard Deviation of Complex Noise)', fontsize=12)
 ax.set_ylabel(r'$M^2$ Factor (Log Scale)', fontsize=12)
-ax.set_title(r'Framework Noise Robustness: $M^2$ vs. Noise Level', fontsize=14, fontweight='bold')
+ax.set_title(r'Framework Noise Robustness: $M^2$ vs. Noise Level (with Error Bars)', fontsize=14, fontweight='bold')
 ax.grid(True, which='both', linestyle='--', linewidth=0.5)
 
 ax.axhline(y=1.0, color='gray', linestyle=':', linewidth=1.5, label=r'Ideal $M^2=1$')
 ax.legend(fontsize=11)
 
 plt.tight_layout()
+plt.savefig("M2_vs_Noise_with_ErrorBars.png", dpi=300)
 plt.show()
 
 logger.info("Script finished.")
