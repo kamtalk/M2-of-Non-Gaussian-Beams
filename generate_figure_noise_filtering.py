@@ -2,6 +2,7 @@
 # This script generates the second new figure to address Reviewer 2, Comment 4.
 # It visually demonstrates the noise-filtering capability of the AddModes model
 # by showing the reconstruction of a clean Gaussian beam from a very noisy input.
+# CORRECTED VERSION 3: Max zoom on the beam spot.
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,7 +22,9 @@ except ImportError as e:
 # SECTION 1: CORE PARAMETERS
 # ==============================================================
 grid_size = 256
-xy_max = 15.0 
+# --- THIS IS THE MODIFIED LINE ---
+xy_max = 3.75  # Changed from 7.5 to 3.75 for maximum zoom
+# --- END OF MODIFICATION ---
 w0_base = 2.0  
 
 # A significant noise level to make the effect visually clear
@@ -40,12 +43,15 @@ x, y, xx, yy, rr, phi = setup_grid(grid_size, xy_max)
 psi_ideal, _ = create_gaussian_beam(w0_base, xx, yy)
 
 # Create the noisy version for analysis
+# Use a fixed seed for reproducibility of the noisy image
+np.random.seed(42)
 noise_real = np.random.normal(loc=0.0, scale=noise_std, size=psi_ideal.shape)
 noise_imag = np.random.normal(loc=0.0, scale=noise_std, size=psi_ideal.shape)
 psi_noisy = psi_ideal + (noise_real + 1j * noise_imag)
 
 # Calculate the (incorrect) M2 of the noisy beam using the traditional method
 m2x_noisy_trad, _ = calculate_m2_spatial_fft(psi_noisy, x, y)
+print(f"Calculated M2 for noisy beam on truncated grid: {m2x_noisy_trad:.2f}")
 
 # --- Run the Additive Modal Decomposition analysis on the noisy beam ---
 print("2. Running AddModes model on the noisy beam...")
@@ -101,8 +107,8 @@ try:
     # Find where this mode ended up after sorting
     lg00_sorted_pos = np.where(sorted_indices == lg00_index_in_keys)[0][0]
     ax.get_children()[lg00_sorted_pos].set_color('crimson') # Highlight the bar
-except ValueError:
-    lg00_sorted_pos = -1 # LG00 not found
+except (ValueError, IndexError):
+    lg00_sorted_pos = -1 # LG00 not found or not in top modes shown
 
 # Label the most powerful mode
 ax.set_xticks([0])
